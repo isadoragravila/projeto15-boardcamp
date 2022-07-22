@@ -52,5 +52,17 @@ export async function finishRental(req, res) {
 }
 
 export async function deleteRental(req, res) {
-    res.sendStatus(200);
+    const { id } = req.params;
+    const rental = res.locals.rental;
+
+    if (!rental.returnDate) {
+        return res.sendStatus(400);
+    }
+    try {
+        await connection.query(`DELETE FROM rentals WHERE id = $1`, [id]);
+        return res.sendStatus(200);
+
+    } catch (error) {
+        res.status(500).send(error);
+    }
 }
