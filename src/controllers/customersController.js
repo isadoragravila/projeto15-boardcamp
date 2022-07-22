@@ -34,6 +34,10 @@ export async function getCustomerById(req, res) {
 export async function postCustomer(req, res) {
     const { name, phone, cpf, birthday } = req.body;
     try {
+        const { rows: repeatedCpf } = await connection.query('SELECT * FROM customers WHERE cpf = $1', [cpf]);
+        if (repeatedCpf.length > 0) {
+            return res.sendStatus(409);
+        }
         await connection.query(`
         INSERT INTO customers (name, phone, cpf, birthday) 
         VALUES ($1, $2, $3, $4)`,
@@ -51,6 +55,11 @@ export async function updateCustomer(req, res) {
     const { name, phone, cpf, birthday } = req.body;
 
     try {
+        const { rows: repeatedCpf } = await connection.query('SELECT * FROM customers WHERE cpf = $1 AND id != $2', [cpf, id]);
+        if (repeatedCpf.length > 0) {
+            return res.sendStatus(409);
+        }
+
         await connection.query(`
         UPDATE customers
         SET name = $1, phone = $2, cpf = $3, birthday = $4
