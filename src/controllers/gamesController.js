@@ -1,24 +1,32 @@
 import connection from "../databases/postgres.js";
 
 export async function getGames(req, res) {
+    const { name, offset, limit } = req.query;
     try {
-        const { name } = req.query;
-
+        const query = `
+        SELECT games.*, categories.name as "categoryName" 
+        FROM games 
+        JOIN categories 
+        ON games."categoryId" = categories.id
+        `;
         if (name) {
-            const { rows: games } = await connection.query(`
-            SELECT games.*, categories.name as "categoryName" FROM games
-            JOIN categories
-            ON games."categoryId" = categories.id
-            WHERE LOWER(games.name) LIKE $1
-            `, [`${name.toLowerCase()}%`]);
+            const { rows: games } = await connection.query(`${query} WHERE LOWER(games.name) LIKE $1`, [`${name.toLowerCase()}%`]);
+            return res.status(200).send(games);
+        }
+        if (offset && limit) {
+            const { rows: games } = await connection.query(`${query} LIMIT $1 OFFSET $2`, [limit, offset]);
+            return res.status(200).send(games);
+        }
+        if (offset) {
+            const { rows: games } = await connection.query(`${query} OFFSET $1`, [offset]);
+            return res.status(200).send(games);
+        }
+        if (limit) {
+            const { rows: games } = await connection.query(`${query} LIMIT $1`, [limit]);
             return res.status(200).send(games);
         }
 
-        const { rows: games } = await connection.query(`
-        SELECT games.*, categories.name as "categoryName" FROM games
-        JOIN categories
-        ON games."categoryId" = categories.id
-    `);
+        const { rows: games } = await connection.query(query);
         return res.status(200).send(games);
 
     } catch (error) {

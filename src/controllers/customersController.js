@@ -1,15 +1,27 @@
 import connection from "../databases/postgres.js";
 
 export async function getCustomers(req, res) {
+    const { cpf, offset, limit } = req.query;
     try {
-        const { cpf } = req.query;
-
+        const query = 'SELECT * FROM customers';
         if (cpf) {
-            const { rows: customers } = await connection.query(`SELECT * FROM customers WHERE cpf LIKE $1`, [`${cpf}%`]);
+            const { rows: customers } = await connection.query(`${query} WHERE cpf LIKE $1`, [`${cpf}%`]);
+            return res.status(200).send(customers);
+        }
+        if (offset && limit) {
+            const { rows: customers } = await connection.query(`${query} LIMIT $1 OFFSET $2`, [limit, offset]);
+            return res.status(200).send(customers);
+        }
+        if (offset) {
+            const { rows: customers } = await connection.query(`${query} OFFSET $1`, [offset]);
+            return res.status(200).send(customers);
+        }
+        if (limit) {
+            const { rows: customers } = await connection.query(`${query} LIMIT $1`, [limit]);
             return res.status(200).send(customers);
         }
 
-        const { rows: customers } = await connection.query(`SELECT * FROM customers`);
+        const { rows: customers } = await connection.query(query);
         return res.status(200).send(customers);
 
     } catch (error) {
