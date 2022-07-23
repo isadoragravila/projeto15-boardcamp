@@ -5,23 +5,11 @@ export async function getCustomers(req, res) {
     try {
         const query = 'SELECT * FROM customers';
         if (cpf) {
-            const { rows: customers } = await connection.query(`${query} WHERE cpf LIKE $1`, [`${cpf}%`]);
-            return res.status(200).send(customers);
-        }
-        if (offset && limit) {
-            const { rows: customers } = await connection.query(`${query} LIMIT $1 OFFSET $2`, [limit, offset]);
-            return res.status(200).send(customers);
-        }
-        if (offset) {
-            const { rows: customers } = await connection.query(`${query} OFFSET $1`, [offset]);
-            return res.status(200).send(customers);
-        }
-        if (limit) {
-            const { rows: customers } = await connection.query(`${query} LIMIT $1`, [limit]);
+            const { rows: customers } = await connection.query(`${query} WHERE cpf LIKE $1 LIMIT $2 OFFSET $3`, [`${cpf}%`, limit, offset]);
             return res.status(200).send(customers);
         }
 
-        const { rows: customers } = await connection.query(query);
+        const { rows: customers } = await connection.query(`${query} LIMIT $1 OFFSET $2`, [limit, offset]);
         return res.status(200).send(customers);
 
     } catch (error) {

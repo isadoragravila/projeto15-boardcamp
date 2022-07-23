@@ -9,22 +9,13 @@ export async function getRentals(req, res) {
         const query = `SELECT rentals.*, customers.name AS "customerName", games.name AS "gameName", games."categoryId", categories.name AS "categoryName" FROM rentals JOIN customers ON rentals."customerId" = customers.id JOIN games ON rentals."gameId" = games.id JOIN categories ON games."categoryId" = categories.id`;
 
         if (customerId) {
-            const { rows } = await connection.query(`${query} WHERE "customerId" = $1`, [customerId]);
+            const { rows } = await connection.query(`${query} WHERE "customerId" = $1 LIMIT $2 OFFSET $3`, [customerId, limit, offset]);
             rentals = [...rows];
         } else if (gameId) {
-            const { rows } = await connection.query(`${query} WHERE "gameId" = $1`, [gameId]);
-            rentals = [...rows];
-        } else if (offset && limit) {
-            const { rows } = await connection.query(`${query} LIMIT $1 OFFSET $2`, [limit, offset]);
-            rentals = [...rows];
-        } else if (offset) {
-            const { rows } = await connection.query(`${query} OFFSET $1`, [offset]);
-            rentals = [...rows];
-        } else if (limit) {
-            const { rows } = await connection.query(`${query} LIMIT $1`, [limit]);
+            const { rows } = await connection.query(`${query} WHERE "gameId" = $1 LIMIT $2 OFFSET $3`, [gameId, limit, offset]);
             rentals = [...rows];
         } else {
-            const { rows } = await connection.query(query);
+            const { rows } = await connection.query(`${query} LIMIT $1 OFFSET $2`, [limit, offset]);
             rentals = [...rows];
         }
 

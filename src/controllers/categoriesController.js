@@ -3,21 +3,9 @@ import connection from "../databases/postgres.js";
 export async function getCategories(req, res) {
     const { offset, limit } = req.query;
     try {
-        const query = 'SELECT * FROM categories';
+        const query = 'SELECT * FROM categories LIMIT $1 OFFSET $2';
 
-        if (offset && limit) {
-            const { rows: categories } = await connection.query(`${query} LIMIT $1 OFFSET $2`, [limit, offset]);
-            return res.status(200).send(categories);
-        }
-        if (offset) {
-            const { rows: categories } = await connection.query(`${query} OFFSET $1`, [offset]);
-            return res.status(200).send(categories);
-        }
-        if (limit) {
-            const { rows: categories } = await connection.query(`${query} LIMIT $1`, [limit]);
-            return res.status(200).send(categories);
-        }
-        const { rows: categories } = await connection.query(query);
+        const { rows: categories } = await connection.query(query, [limit, offset]);
         return res.status(200).send(categories);
 
     } catch (error) {

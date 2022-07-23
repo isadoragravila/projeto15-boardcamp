@@ -9,24 +9,13 @@ export async function getGames(req, res) {
         JOIN categories 
         ON games."categoryId" = categories.id
         `;
+        
         if (name) {
-            const { rows: games } = await connection.query(`${query} WHERE LOWER(games.name) LIKE $1`, [`${name.toLowerCase()}%`]);
-            return res.status(200).send(games);
-        }
-        if (offset && limit) {
-            const { rows: games } = await connection.query(`${query} LIMIT $1 OFFSET $2`, [limit, offset]);
-            return res.status(200).send(games);
-        }
-        if (offset) {
-            const { rows: games } = await connection.query(`${query} OFFSET $1`, [offset]);
-            return res.status(200).send(games);
-        }
-        if (limit) {
-            const { rows: games } = await connection.query(`${query} LIMIT $1`, [limit]);
+            const { rows: games } = await connection.query(`${query} WHERE LOWER(games.name) LIKE $1 LIMIT $2 OFFSET $3`, [`${name.toLowerCase()}%`, limit, offset]);
             return res.status(200).send(games);
         }
 
-        const { rows: games } = await connection.query(query);
+        const { rows: games } = await connection.query(`${query} LIMIT $1 OFFSET $2`, [limit, offset]);
         return res.status(200).send(games);
 
     } catch (error) {
