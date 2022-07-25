@@ -2,15 +2,20 @@ import connection from "../databases/postgres.js";
 import dayjs from "dayjs";
 
 export async function getRentals(req, res) {
-    const { customerId, gameId, offset, limit, order, desc, status } = req.query;
+    const { customerId, gameId, offset, limit, order, desc, status, startDate } = req.query;
     const orderBy = order ? `ORDER BY ${order} ${desc ? "DESC" : "ASC"}` : '';
     let rentals = [];
     let rentalStatus = '';
+    let rentalStartDate = '';
     if (status === 'open') {
         rentalStatus = `"returnDate" IS NULL`;
     } else if (status === 'closed') {
         rentalStatus = `"returnDate" IS NOT NULL`;
     }
+    if (startDate && dayjs(startDate).format('YYYY-MM-DD') !== "Invalid Date") {
+        rentalStartDate = `"rentDate" >= '${dayjs(startDate).format('YYYY-MM-DD')}'`;
+    }
+
     try {
         const query = `
         SELECT rentals.*, customers.name AS "customerName", games.name AS "gameName", games."categoryId", categories.name AS "categoryName" 
@@ -20,16 +25,19 @@ export async function getRentals(req, res) {
         JOIN categories ON games."categoryId" = categories.id`;
 
         if (customerId) {
-            const aux = status ? 'AND' : '';
-            const { rows } = await connection.query(`${query} WHERE "customerId" = $1 ${aux} ${rentalStatus} ${orderBy} LIMIT $2 OFFSET $3`, [customerId, limit, offset]);
+            const and = rentalStatus ? 'AND' : '';
+            const and2 = rentalStartDate ? 'AND' : '';
+            const { rows } = await connection.query(`${query} WHERE "customerId" = $1 ${and} ${rentalStatus} ${and2} ${rentalStartDate} ${orderBy} LIMIT $2 OFFSET $3`, [customerId, limit, offset]);
             rentals = [...rows];
         } else if (gameId) {
-            const aux = status ? 'AND' : '';
-            const { rows } = await connection.query(`${query} WHERE "gameId" = $1 ${aux} ${rentalStatus} ${orderBy} LIMIT $2 OFFSET $3`, [gameId, limit, offset]);
+            const and = rentalStatus ? 'AND' : '';
+            const and2 = rentalStartDate ? 'AND' : '';
+            const { rows } = await connection.query(`${query} WHERE "gameId" = $1 ${and} ${rentalStatus} ${and2} ${rentalStartDate} ${orderBy} LIMIT $2 OFFSET $3`, [gameId, limit, offset]);
             rentals = [...rows];
         } else {
-            const aux = status ? 'WHERE' : '';
-            const { rows } = await connection.query(`${query} ${aux} ${rentalStatus} ${orderBy} LIMIT $1 OFFSET $2`, [limit, offset]);
+            const where = rentalStatus || rentalStartDate ? 'WHERE' : '';
+            const and = rentalStatus && rentalStartDate ? 'AND' : '';
+            const { rows } = await connection.query(`${query} ${where} ${rentalStatus} ${and} ${rentalStartDate} ${orderBy} LIMIT $1 OFFSET $2`, [limit, offset]);
             rentals = [...rows];
         }
 
@@ -128,9 +136,9 @@ export async function getMetrics(req, res) {
         const { prices, fees, rentals } = rows[0];
 
         const metrics = {
-            revenue: Number(prices) + Number(fees) ,
+            revenue: Number(prices) + Number(fees),
             rentals: Number(rentals),
-            average: (Number(prices) + Number(fees))/Number(rentals)
+            average: (Number(prices) + Number(fees)) / Number(rentals)
         }
 
         return res.status(200).send(metrics);
