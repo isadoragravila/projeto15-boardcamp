@@ -1,7 +1,8 @@
 import connection from "../databases/postgres.js";
 
 export async function getGames(req, res) {
-    const { name, offset, limit } = req.query;
+    const { name, offset, limit, order, desc } = req.query;
+    const orderBy = order ? `ORDER BY ${order} ${desc ? "DESC" : "ASC"}` : '';
     try {
         const query = `
         SELECT games.*, categories.name as "categoryName" 
@@ -11,11 +12,11 @@ export async function getGames(req, res) {
         `;
         
         if (name) {
-            const { rows: games } = await connection.query(`${query} WHERE LOWER(games.name) LIKE $1 LIMIT $2 OFFSET $3`, [`${name.toLowerCase()}%`, limit, offset]);
+            const { rows: games } = await connection.query(`${query} WHERE LOWER(games.name) LIKE $1 ${orderBy} LIMIT $2 OFFSET $3`, [`${name.toLowerCase()}%`, limit, offset]);
             return res.status(200).send(games);
         }
 
-        const { rows: games } = await connection.query(`${query} LIMIT $1 OFFSET $2`, [limit, offset]);
+        const { rows: games } = await connection.query(`${query} ${orderBy} LIMIT $1 OFFSET $2`, [limit, offset]);
         return res.status(200).send(games);
 
     } catch (error) {

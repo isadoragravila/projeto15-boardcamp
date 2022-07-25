@@ -1,9 +1,10 @@
 import connection from "../databases/postgres.js";
 
 export async function getCategories(req, res) {
-    const { offset, limit } = req.query;
+    const { offset, limit, order, desc } = req.query;
+    const orderBy = order ? `ORDER BY ${order} ${desc ? "DESC" : "ASC"}` : '';
     try {
-        const query = 'SELECT * FROM categories LIMIT $1 OFFSET $2';
+        const query = `SELECT * FROM categories ${orderBy} LIMIT $1 OFFSET $2`;
 
         const { rows: categories } = await connection.query(query, [limit, offset]);
         return res.status(200).send(categories);
