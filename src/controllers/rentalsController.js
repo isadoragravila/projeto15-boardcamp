@@ -2,20 +2,34 @@ import connection from "../databases/postgres.js";
 import dayjs from "dayjs";
 
 export async function getRentals(req, res) {
-    const { customerId, gameId, offset, limit, order, desc } = req.query;
+    const { customerId, gameId, offset, limit, order, desc, status } = req.query;
     const orderBy = order ? `ORDER BY ${order} ${desc ? "DESC" : "ASC"}` : '';
     let rentals = [];
+    let rentalStatus = '';
+    if (status === 'open') {
+        rentalStatus = `"returnDate" IS NULL`;
+    } else if (status === 'closed') {
+        rentalStatus = `"returnDate" IS NOT NULL`;
+    }
     try {
-        const query = `SELECT rentals.*, customers.name AS "customerName", games.name AS "gameName", games."categoryId", categories.name AS "categoryName" FROM rentals JOIN customers ON rentals."customerId" = customers.id JOIN games ON rentals."gameId" = games.id JOIN categories ON games."categoryId" = categories.id`;
+        const query = `
+        SELECT rentals.*, customers.name AS "customerName", games.name AS "gameName", games."categoryId", categories.name AS "categoryName" 
+        FROM rentals 
+        JOIN customers ON rentals."customerId" = customers.id 
+        JOIN games ON rentals."gameId" = games.id 
+        JOIN categories ON games."categoryId" = categories.id`;
 
         if (customerId) {
-            const { rows } = await connection.query(`${query} WHERE "customerId" = $1 ${orderBy} LIMIT $2 OFFSET $3`, [customerId, limit, offset]);
+            const aux = status ? 'AND' : '';
+            const { rows } = await connection.query(`${query} WHERE "customerId" = $1 ${aux} ${rentalStatus} ${orderBy} LIMIT $2 OFFSET $3`, [customerId, limit, offset]);
             rentals = [...rows];
         } else if (gameId) {
-            const { rows } = await connection.query(`${query} WHERE "gameId" = $1 ${orderBy} LIMIT $2 OFFSET $3`, [gameId, limit, offset]);
+            const aux = status ? 'AND' : '';
+            const { rows } = await connection.query(`${query} WHERE "gameId" = $1 ${aux} ${rentalStatus} ${orderBy} LIMIT $2 OFFSET $3`, [gameId, limit, offset]);
             rentals = [...rows];
         } else {
-            const { rows } = await connection.query(`${query} ${orderBy} LIMIT $1 OFFSET $2`, [limit, offset]);
+            const aux = status ? 'WHERE' : '';
+            const { rows } = await connection.query(`${query} ${aux} ${rentalStatus} ${orderBy} LIMIT $1 OFFSET $2`, [limit, offset]);
             rentals = [...rows];
         }
 
