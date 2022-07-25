@@ -117,3 +117,25 @@ export async function deleteRental(req, res) {
         res.status(500).send(error);
     }
 }
+
+export async function getMetrics(req, res) {
+    try {
+        const { rows } = await connection.query(`
+        SELECT SUM("originalPrice") AS prices, SUM("delayFee") AS fees, COUNT(id) AS rentals 
+        FROM rentals 
+        WHERE "returnDate" IS NOT NULL`);
+
+        const { prices, fees, rentals } = rows[0];
+
+        const metrics = {
+            revenue: Number(prices) + Number(fees) ,
+            rentals: Number(rentals),
+            average: (Number(prices) + Number(fees))/Number(rentals)
+        }
+
+        return res.status(200).send(metrics);
+
+    } catch (error) {
+        res.status(500).send(error);
+    }
+}
