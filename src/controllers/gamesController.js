@@ -4,19 +4,21 @@ export async function getGames(req, res) {
     const { name, offset, limit, order, desc } = req.query;
     const orderBy = order ? `ORDER BY ${order} ${desc ? "DESC" : "ASC"}` : '';
     try {
-        const query = `
-        SELECT games.*, categories.name as "categoryName" 
-        FROM games 
-        JOIN categories 
-        ON games."categoryId" = categories.id
+        const queryStart = `
+        SELECT games.*, categories.name as "categoryName", COUNT(rentals.id) AS rentalsCount
+        FROM games
+        LEFT JOIN rentals ON games.id = rentals."gameId" 
+        JOIN categories ON games."categoryId" = categories.id
         `;
+        const queryEnd = `GROUP BY games.id, categories.name`;
+
         
         if (name) {
-            const { rows: games } = await connection.query(`${query} WHERE LOWER(games.name) LIKE $1 ${orderBy} LIMIT $2 OFFSET $3`, [`${name.toLowerCase()}%`, limit, offset]);
+            const { rows: games } = await connection.query(`${queryStart} WHERE LOWER(games.name) LIKE $1 ${queryEnd} ${orderBy} LIMIT $2 OFFSET $3`, [`${name.toLowerCase()}%`, limit, offset]);
             return res.status(200).send(games);
         }
 
-        const { rows: games } = await connection.query(`${query} ${orderBy} LIMIT $1 OFFSET $2`, [limit, offset]);
+        const { rows: games } = await connection.query(`${queryStart} ${queryEnd} ${orderBy} LIMIT $1 OFFSET $2`, [limit, offset]);
         return res.status(200).send(games);
 
     } catch (error) {

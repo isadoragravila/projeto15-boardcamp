@@ -4,13 +4,18 @@ export async function getCustomers(req, res) {
     const { cpf, offset, limit, order, desc } = req.query;
     const orderBy = order ? `ORDER BY ${order} ${desc ? "DESC" : "ASC"}` : '';
     try {
-        const query = 'SELECT * FROM customers';
+        const queryStart = `
+        SELECT customers.*, COUNT(rentals.id) AS rentalsCount 
+        FROM customers 
+        LEFT JOIN rentals ON customers.id = rentals."customerId"`;
+        const queryEnd = `GROUP BY customers.id`;
+
         if (cpf) {
-            const { rows: customers } = await connection.query(`${query} WHERE cpf LIKE $1 ${orderBy} LIMIT $2 OFFSET $3`, [`${cpf}%`, limit, offset]);
+            const { rows: customers } = await connection.query(`${queryStart} WHERE cpf LIKE $1 ${queryEnd} ${orderBy} LIMIT $2 OFFSET $3`, [`${cpf}%`, limit, offset]);
             return res.status(200).send(customers);
         }
 
-        const { rows: customers } = await connection.query(`${query} ${orderBy} LIMIT $1 OFFSET $2`, [limit, offset]);
+        const { rows: customers } = await connection.query(`${queryStart} ${queryEnd} ${orderBy} LIMIT $1 OFFSET $2`, [limit, offset]);
         return res.status(200).send(customers);
 
     } catch (error) {
