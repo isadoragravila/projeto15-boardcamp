@@ -127,11 +127,21 @@ export async function deleteRental(req, res) {
 }
 
 export async function getMetrics(req, res) {
+    const { startDate, endDate } = req.query;
     try {
+        let rentalStartDate = '';
+        let rentalEndDate = '';
+        if (startDate && dayjs(startDate).format('YYYY-MM-DD') !== "Invalid Date") {
+            rentalStartDate = `AND "rentDate" >= '${dayjs(startDate).format('YYYY-MM-DD')}'`;
+        }
+        if (endDate && dayjs(endDate).format('YYYY-MM-DD') !== "Invalid Date") {
+            rentalEndDate = `AND "rentDate" <= '${dayjs(endDate).format('YYYY-MM-DD')}'`;
+        }
+
         const { rows } = await connection.query(`
         SELECT SUM("originalPrice") AS prices, SUM("delayFee") AS fees, COUNT(id) AS rentals 
         FROM rentals 
-        WHERE "returnDate" IS NOT NULL`);
+        WHERE "returnDate" IS NOT NULL ${rentalStartDate} ${rentalEndDate}`);
 
         const { prices, fees, rentals } = rows[0];
 
